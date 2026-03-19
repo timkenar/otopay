@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Service {
+  id               String        @id @default(cuid())
+  name             String
+  slug             String        @unique
+  webhookUrl       String
+  isActive         Boolean       @default(true)
+  providerSettings Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  apiKeys          APIKey[]
+  transactions     Transaction[]
+  webhookLogs      WebhookLog[]
+}
+
+model APIKey {
+  id          String        @id @default(cuid())
+  label       String
+  keyPrefix   String
+  keyHash     String
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  scopes      Json
+  createdAt   DateTime      @default(now())
+  serviceId   String
+  service     Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id                  String             @id @default(cuid())
+  externalReference   String?            @unique
+  providerReference   String?
+  provider            PaymentProvider
+  status              TransactionStatus  @default(PENDING)
+  amount              Int
+  currency            String
+  customerPhone       String?
+  customerEmail       String?
+  metadata            Json?
+  providerPayload     Json?
+  callbackPayload     Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  serviceId           String
+  service             Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  webhookLogs         WebhookLog[]
+}
+
+model WebhookLog {
+  id             String             @id @default(cuid())
+  eventType      String
+  status         WebhookDeliveryStatus
+  attempt        Int                @default(1)
+  requestUrl     String
+  requestBody    Json
+  responseCode   Int?
+  responseBody   String?
+  nextRetryAt    DateTime?
+  createdAt      DateTime           @default(now())
+  transactionId  String?
+  serviceId      String
+  transaction    Transaction?       @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  service        Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+}
+
+enum PaymentProvider {
+  MPESA
+  PAYSTACK
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+}

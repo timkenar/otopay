@@ -1,0 +1,33 @@
+{
+  "name": "otopay",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "lucide-react": "^0.475.0",
+    "next": "15.2.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "prisma": "^6.6.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  }
+}
