@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { env } from "@/lib/env";
 import { handleProviderCallback } from "@/services/payment-orchestrator";
 import { validateMpesaCallback } from "@/services/adapters/mpesa-adapter";
 
@@ -12,7 +13,7 @@ const mpesaCallbackSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const rawPayload = await request.json();
-    const isValid = await validateMpesaCallback(rawPayload);
+    const isValid = await validateMpesaCallback(rawPayload, env.MPESA_CALLBACK_TOKEN ?? null);
 
     if (!isValid) {
       return NextResponse.json({ error: "Invalid Mpesa callback" }, { status: 401 });

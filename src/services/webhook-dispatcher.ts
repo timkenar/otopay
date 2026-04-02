@@ -1,32 +1,81 @@
-import { getServiceById } from "@/lib/mock-data";
-import { ProviderCallbackPayload, WebhookLogRecord } from "@/lib/types";
+import { createHmac } from "node:crypto";
+import { TransactionStatus, WebhookDeliveryStatus } from "@prisma/client";
+import { createWebhookLog } from "@/lib/data";
+import { env } from "@/lib/env";
+import { WebhookLogRecord } from "@/lib/types";
 
 function computeNextRetry(attempt: number) {
   const delayMinutes = Math.min(2 ** attempt, 60);
-  return new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
+  return new Date(Date.now() + delayMinutes * 60 * 1000);
 }
 
-export async function dispatchWebhook(payload: ProviderCallbackPayload): Promise<WebhookLogRecord> {
-  const service = payload.transactionId ? getServiceById(resolveServiceId(payload.transactionId)) : undefined;
-
-  return {
-    id: `wh_${Math.random().toString(36).slice(2, 8)}`,
-    eventType: "transaction.updated",
-    status: payload.status === "SUCCESS" ? "DELIVERED" : "RETRYING",
-    attempt: 1,
-    requestUrl: service?.webhookUrl ?? "https://example.com/webhooks/otopay",
-    responseCode: payload.status === "SUCCESS" ? 200 : 503,
-    nextRetryAt: payload.status === "FAILED" ? computeNextRetry(1) : undefined,
-    createdAt: new Date().toISOString(),
-    transactionId: payload.transactionId,
-    serviceId: service?.id ?? "svc_core_shop"
+export async function dispatchWebhook(input: {
+  transaction: {
+    id: string;
+    providerReference: string | null;
+    status: TransactionStatus;
+    metadata: unknown;
+    providerPayload: unknown;
+    callbackPayload: unknown;
+    serviceId: string;
+    service: {
+      webhookUrl: string;
+    };
   };
-}
+}): Promise<WebhookLogRecord> {
+  const requestBody = {
+    transactionId: input.transaction.id,
+    status: input.transaction.status,
+    providerData: {
+      providerReference: input.transaction.providerReference,
+      initiated: input.transaction.providerPayload,
+      callback: input.transaction.callbackPayload
+    },
+    metadata: input.transaction.metadata
+  };
+  const body = JSON.stringify(requestBody);
+  const headers: Record<string, string> = {
+    "content-type": "application/json"
+  };
 
-function resolveServiceId(transactionId: string) {
-  if (transactionId.includes("pstk")) {
-    return "svc_rides";
+  if (env.OTOPAY_WEBHOOK_SIGNING_SECRET) {
+    headers["x-otopay-signature"] = createHmac("sha256", env.OTOPAY_WEBHOOK_SIGNING_SECRET)
+      .update(body)
+      .digest("hex");
   }
 
-  return "svc_core_shop";
+  try {
+    const response = await fetch(input.transaction.service.webhookUrl, {
+      method: "POST",
+      headers,
+      body
+    });
+    const responseBody = await response.text();
+
+    return createWebhookLog({
+      eventType: "transaction.updated",
+      status: response.ok ? WebhookDeliveryStatus.DELIVERED : WebhookDeliveryStatus.RETRYING,
+      attempt: 1,
+      requestUrl: input.transaction.service.webhookUrl,
+      requestBody,
+      responseCode: response.status,
+      responseBody,
+      nextRetryAt: response.ok ? undefined : computeNextRetry(1),
+      transactionId: input.transaction.id,
+      serviceId: input.transaction.serviceId
+    });
+  } catch (error) {
+    return createWebhookLog({
+      eventType: "transaction.updated",
+      status: WebhookDeliveryStatus.RETRYING,
+      attempt: 1,
+      requestUrl: input.transaction.service.webhookUrl,
+      requestBody,
+      responseCode: 503,
+      responseBody: error instanceof Error ? error.message : "Webhook dispatch failed",
+      nextRetryAt: computeNextRetry(1),
+      transactionId: input.transaction.id,
+      serviceId: input.transaction.serviceId
+    });
+  }
 }

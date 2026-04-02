@@ -1,7 +1,9 @@
 import { DashboardShell } from "@/components/dashboard-shell";
-import { apiKeys, getServiceById } from "@/lib/mock-data";
+import { listApiKeysWithServices } from "@/lib/data";
 
-export default function ApiKeysPage() {
+export default async function ApiKeysPage() {
+  const apiKeys = await listApiKeysWithServices();
+
   return (
     <DashboardShell
       title="API Keys"
@@ -10,17 +12,17 @@ export default function ApiKeysPage() {
       <section className="card table-grid">
         <div className="table">
           {apiKeys.map((apiKey) => {
-            const service = getServiceById(apiKey.serviceId);
-
             return (
               <div key={apiKey.id} className="table-row">
                 <div>
                   <strong>{apiKey.label}</strong>
-                  <p className="muted">{service?.name}</p>
+                  <p className="muted">{apiKey.service.name}</p>
                 </div>
                 <div>
                   <code>{apiKey.keyPrefix}</code>
-                  <p className="muted">{apiKey.scopes.join(", ")}</p>
+                  <p className="muted">
+                    {Array.isArray(apiKey.scopes) ? apiKey.scopes.map(String).join(", ") : ""}
+                  </p>
                 </div>
               </div>
             );

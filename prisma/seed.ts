@@ -1,11 +1,16 @@
+import { createHash } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+function hashApiKey(apiKey: string) {
+  return createHash("sha256").update(apiKey).digest("hex");
+}
+
 async function main() {
   await prisma.webhookLog.deleteMany();
   await prisma.transaction.deleteMany();
-  await prisma.apiKey.deleteMany();
+  await prisma.aPIKey.deleteMany();
   await prisma.service.deleteMany();
   await prisma.user.deleteMany();
 
@@ -43,13 +48,13 @@ async function main() {
     }
   });
 
-  await prisma.apiKey.createMany({
+  await prisma.aPIKey.createMany({
     data: [
       {
         id: "key_1",
         label: "Production Server",
         keyPrefix: "otop_live_6e2c",
-        keyHash: "hashed-placeholder-1",
+        keyHash: hashApiKey("otop_live_6e2c.core-shop-secret"),
         scopes: ["payments:write", "transactions:read"],
         lastUsedAt: new Date("2026-03-19T10:30:00.000Z"),
         serviceId: "svc_core_shop"
@@ -58,7 +63,7 @@ async function main() {
         id: "key_2",
         label: "Staging Server",
         keyPrefix: "otop_test_89af",
-        keyHash: "hashed-placeholder-2",
+        keyHash: hashApiKey("otop_test_89af.oto-rides-secret"),
         scopes: ["payments:write"],
         serviceId: "svc_rides"
       }

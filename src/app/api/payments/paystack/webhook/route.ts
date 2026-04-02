@@ -11,14 +11,15 @@ const paystackWebhookSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const rawBody = await request.text();
     const signature = request.headers.get("x-paystack-signature");
-    const verified = await verifyPaystackSignature(signature);
+    const verified = await verifyPaystackSignature(signature, rawBody);
 
     if (!verified) {
       return NextResponse.json({ error: "Invalid Paystack signature" }, { status: 401 });
     }
 
-    const rawPayload = await request.json();
+    const rawPayload = JSON.parse(rawBody);
     const payload = paystackWebhookSchema.parse(rawPayload);
     const result = await handleProviderCallback({
       provider: "PAYSTACK",

@@ -1,10 +1,10 @@
 import { Activity, BellRing, CreditCard, Landmark } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { StatCard } from "@/components/stat-card";
-import { services, transactions, webhookLogs } from "@/lib/mock-data";
+import { getDashboardSummary, listTransactions } from "@/lib/data";
 
-export default function DashboardPage() {
-  const totalVolume = transactions.reduce((sum, item) => sum + item.amount, 0);
+export default async function DashboardPage() {
+  const [summary, transactions] = await Promise.all([getDashboardSummary(), listTransactions()]);
 
   return (
     <DashboardShell
@@ -14,19 +14,19 @@ export default function DashboardPage() {
       <section className="metrics-grid">
         <StatCard
           label="Processed volume"
-          value={`KES ${totalVolume.toLocaleString()}`}
-          detail="Mock data representing historical and active payment flows"
+          value={`KES ${summary.totalVolume.toLocaleString()}`}
+          detail="Historical and active payment flows from the OtoPay transaction ledger"
           accent={<CreditCard size={18} />}
         />
         <StatCard
           label="Active services"
-          value={String(services.filter((service) => service.isActive).length)}
+          value={String(summary.activeServicesCount)}
           detail="Webhook-configured clients using the OtoPay API"
           accent={<Landmark size={18} />}
         />
         <StatCard
           label="Webhook alerts"
-          value={String(webhookLogs.filter((log) => log.status !== "DELIVERED").length)}
+          value={String(summary.webhookAlerts)}
           detail="Retries are surfaced directly in the dashboard"
           accent={<BellRing size={18} />}
         />

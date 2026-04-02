@@ -1,7 +1,9 @@
 import { DashboardShell } from "@/components/dashboard-shell";
-import { getServiceById, transactions } from "@/lib/mock-data";
+import { listTransactionsWithServices } from "@/lib/data";
 
-export default function TransactionsPage() {
+export default async function TransactionsPage() {
+  const transactions = await listTransactionsWithServices();
+
   return (
     <DashboardShell
       title="Transactions"
@@ -10,14 +12,12 @@ export default function TransactionsPage() {
       <section className="card table-grid">
         <div className="table">
           {transactions.map((transaction) => {
-            const service = getServiceById(transaction.serviceId);
-
             return (
               <div key={transaction.id} className="table-row">
                 <div>
-                  <strong>{transaction.externalReference}</strong>
+                  <strong>{transaction.externalReference ?? transaction.id}</strong>
                   <p className="muted">
-                    {service?.name} • {transaction.providerReference}
+                    {transaction.service.name} • {transaction.providerReference ?? "Pending reference"}
                   </p>
                 </div>
                 <div>

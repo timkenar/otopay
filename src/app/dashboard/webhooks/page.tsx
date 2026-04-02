@@ -1,7 +1,9 @@
 import { DashboardShell } from "@/components/dashboard-shell";
-import { getServiceById, webhookLogs } from "@/lib/mock-data";
+import { listWebhookLogsWithServices } from "@/lib/data";
 
-export default function WebhooksPage() {
+export default async function WebhooksPage() {
+  const webhookLogs = await listWebhookLogsWithServices();
+
   return (
     <DashboardShell
       title="Webhook Delivery"
@@ -10,12 +12,10 @@ export default function WebhooksPage() {
       <section className="card table-grid">
         <div className="table">
           {webhookLogs.map((log) => {
-            const service = getServiceById(log.serviceId);
-
             return (
               <div key={log.id} className="table-row">
                 <div>
-                  <strong>{service?.name}</strong>
+                  <strong>{log.service.name}</strong>
                   <p className="muted">{log.requestUrl}</p>
                 </div>
                 <div className="status-row">

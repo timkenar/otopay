@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, KeyRound, RefreshCcw, ShieldCheck } from "lucide-react";
-import { apiKeys, transactions, webhookLogs } from "@/lib/mock-data";
+import { getDashboardSummary, listApiKeys, listWebhookLogs } from "@/lib/data";
 import { StatCard } from "@/components/stat-card";
 
-export default function HomePage() {
-  const successfulTransactions = transactions.filter((entry) => entry.status === "SUCCESS").length;
+export default async function HomePage() {
+  const [summary, apiKeys, webhookLogs] = await Promise.all([
+    getDashboardSummary(),
+    listApiKeys(),
+    listWebhookLogs()
+  ]);
 
   return (
     <div className="landing">
@@ -29,8 +33,8 @@ export default function HomePage() {
         <section className="metrics-grid">
           <StatCard
             label="Live transactions"
-            value={String(transactions.length)}
-            detail={`${successfulTransactions} successful across both providers`}
+            value={String(summary.transactionCount)}
+            detail={`${summary.successfulTransactions} successful across both providers`}
             accent={<ShieldCheck size={18} />}
           />
           <StatCard

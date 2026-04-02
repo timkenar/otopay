@@ -1,7 +1,9 @@
 import { DashboardShell } from "@/components/dashboard-shell";
-import { services } from "@/lib/mock-data";
+import { listServices } from "@/lib/data";
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+  const services = await listServices();
+
   return (
     <DashboardShell
       title="Services"
